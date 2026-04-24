@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+
+model User {
+  id String @id @default(uuid())
+  name String
+  email String @unique
+  password String 
+  role Role
+
+  Projects Project[] @relation("ManagerProjects") 
+  createdBugs Bug[] @relation("BugCreator")
+  assignedBugs Bug[] @relation("BugDeveloper")
+  projectUsers ProjectUser[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id String @id @default(uuid())
+  name String @unique 
+
+  managerID String
+  manager User @relation("ManagerProjects", fields: [managerID], references: [id])
+
+  bugs Bug[] 
+  projectUsers ProjectUser[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt   
+}
+
+model Bug{
+  id String @id @default(uuid())
+  title String
+  deadline DateTime?
+  description String?
+  image String?
+  type BugType
+  status BugStatus
+
+  creatorId String
+  assignedBy User @relation("BugCreator", fields: [creatorId], references: [id])
+
+  projectId String
+  project Project @relation(fields: [projectId], references: [id])
+  
+  developerId String?
+  assignedTo User? @relation("BugDeveloper", fields: [developerId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt   
+  @@unique([title, projectId]) 
+
+}
+model ProjectUser{
+  id String @id @default(uuid())
+  userId String
+  projectId String
+
+  user User @relation(fields: [userId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+  @@unique([userId,projectId])
+}
+
+enum Role{
+  MANAGER
+  DEVELOPER
+  QA
+}
+enum BugType {
+  FEATURE
+  BUG
+}
+
+enum BugStatus{
+  NEW 
+  STARTED
+  RESOLVED
+  COMPLETED
+}
+
