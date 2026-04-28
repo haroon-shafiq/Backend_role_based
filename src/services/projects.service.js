@@ -121,20 +121,10 @@ const getAllProjects = async () => {
         select: {
             id: true,
             name: true,
-            projectUsers: {
-                select: {
-                    user: {
-                        select: {
-                            id: true,
-                            name: true,
-                            role: true,
-                        },
-                    },
-                },
-            },
-        },
-    });
 
+        },
+
+    });
     return { projects };
-};
+}
 export { createProject, getProject, assignDeveloperToProject, getAllProjects };
