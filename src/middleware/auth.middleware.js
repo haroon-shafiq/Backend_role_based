@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
 
-const checkAuth = (req, res, next) => {
+export const checkAuth = (req, res, next) => {
     try {
         const token = req.cookies.token;
         if (!token) {
@@ -16,5 +16,12 @@ const checkAuth = (req, res, next) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 }
-
-export default checkAuth;
+export const checkRole = (...roles) => {
+    console.log("Roles from checkRole:", roles);
+    return (req, res, next) => {
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+        next();
+    }
+}

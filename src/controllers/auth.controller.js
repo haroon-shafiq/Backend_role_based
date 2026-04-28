@@ -1,3 +1,4 @@
+import { use } from "react";
 import * as AuthService from "../services/auth.service.js"
 import { sendError, sendSuccess } from "../utils/utils.response.js";
 const register = async (req, res) => {
@@ -71,6 +72,7 @@ const logout = async (req, res) => {
 const getUser = async (req, res) => {
     try {
         const user = await AuthService.getUser(req.user.id);
+        console.log("User", user)
         if (!user) {
             return sendError(res, 404, "User not found");
         }
@@ -82,4 +84,25 @@ const getUser = async (req, res) => {
     }
 }
 
-export { register, login, logout, getUser }; 
+const getAllDevelopers = async (req, res) => {
+    try {
+        const developers = await AuthService.getAllDevelopers();
+        console.log("Developers", developers)
+        return sendSuccess(res, 200, "Developers fetched successfully", { developers });
+    } catch (error) {
+        console.error(error);
+        return sendError(res, 500, "Internal server error");
+    }
+}
+const getDeveloperByProject = async (req, res) => {
+    try {
+        const developers = await AuthService.getDeveloperByProject(req.params.projectId);
+        console.log("Developers", developers)
+        return sendSuccess(res, 200, "Developers fetched successfully", { developers });
+    } catch (error) {
+        console.error(error);
+        return sendError(res, 500, "Internal server error");
+    }
+}
+
+export { register, login, logout, getUser, getAllDevelopers, getDeveloperByProject }; 

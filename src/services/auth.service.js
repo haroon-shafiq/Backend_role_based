@@ -77,4 +77,30 @@ const getUser = async (userId) => {
 
 }
 
-export { register, login, getUser }; 
+const getAllDevelopers = async () => {
+    const developers = await prisma.user.findMany({
+        where: { role: "DEVELOPER" }
+    });
+    return developers
+}
+const getDeveloperByProject = async (projectId) => {
+    const developers = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: {
+            projectUsers: {
+                select: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            role: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+    return developers
+}
+
+export { register, login, getUser, getAllDevelopers, getDeveloperByProject }; 

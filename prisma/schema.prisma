@@ -32,6 +32,8 @@ model User {
 model Project {
   id String @id @default(uuid())
   name String @unique 
+  description String?
+  deadline DateTime?
 
   managerID String
   manager User @relation("ManagerProjects", fields: [managerID], references: [id])
