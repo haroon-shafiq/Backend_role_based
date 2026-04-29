@@ -114,5 +114,17 @@ const getAllProjects = async (req, res) => {
         return sendError(res, 500, "Internal server error");
     }
 }
+const getProjectIdByDeveloper = async (req, res) => {
+    const developerID = req.user.id;
+    try {
+        const projectIds = await ProjectService.getProjectIdsByDeveloper(developerID);
+        console.log("Project IDs", projectIds);
+        return sendSuccess(res, 200, "Project IDs fetched successfully", { projectIds });
+    } catch (error) {
+        console.log(error);
+        return sendError(res, 500, "Internal server error");
+    }
+};
 
-export { createProject, getProject, assignDeveloperToProject, getAllProjects };
+
+export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdByDeveloper };

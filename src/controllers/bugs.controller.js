@@ -1,12 +1,17 @@
 import * as BugService from "../services/bugs.service.js";
 import { sendSuccess, sendError } from "../utils/utils.response.js";
+import cloudinary from "../config/cloudinary.config.js";
 
 const createBug = async (req, res) => {
     const { projectID } = req.params;
     console.log("Project ID", projectID);
     const { title, type, status, developerIDs } = req.body;
+    console.log("Body", req.body)
     const userRole = req.user.role;
     const qaID = req.user.id;
+    console.log("Request of file", req.file)
+    const filePath = req.file?.path;
+    console.log("File Path", filePath);
     if (userRole !== "QA") {
         return sendError(res, 403, "Only QA can create bugs");
     }
@@ -34,7 +39,16 @@ const createBug = async (req, res) => {
     }
 
     try {
-        const result = await BugService.createBug({ projectId: projectID, creatorId: qaID, ...req.body });
+        let imageURL = null;
+        if (filePath) {
+            const res = await cloudinary.uploader.upload(filePath);
+            console.log("Image URL", res.url);
+            if (!res) {
+                return res.status(400).json({ message: "Image not uploaded" })
+            }
+            imageURL = res.url;
+        }
+        const result = await BugService.createBug({ projectId: projectID, creatorId: qaID, imageURL, ...req.body });
         console.log("Result===================", result.bug)
         if (developerIDs?.length > 0 && result.bug.id) {
             for (const developerID of developerIDs) {
@@ -154,4 +168,18 @@ const getAllBugs = async (req, res) => {
         return sendError(res, 500, "Internal server error");
     }
 }
-export { createBug, getBug, assignBugToDeveloper, getAllBugs }; 
+const getBugById = async (req, res) => {
+    const { bugID } = req.params;
+
+    if (!bugID) {
+        return sendError(res, 400, "bugID is required");
+    }
+    try {
+        const bug = await BugService.getBugById(bugID);
+        return sendSuccess(res, 200, "Bug fetched successfully", { bug });
+    } catch (error) {
+        console.error(error);
+        return sendError(res, 500, "Internal server error");
+    }
+}
+export { createBug, getBug, assignBugToDeveloper, getAllBugs, getBugById }; 

@@ -127,4 +127,29 @@ const getAllProjects = async () => {
     });
     return { projects };
 }
-export { createProject, getProject, assignDeveloperToProject, getAllProjects };
+const getProjectIdsByDeveloper = async (developerID) => {
+    const projects = await prisma.project.findMany({
+        where: {
+            projectUsers: {
+                some: { userId: developerID },
+            },
+        },
+        include: {
+            manager: {
+                select: { id: true, name: true, role: true },
+            },
+
+            bugs: {
+                include: {
+                    assignedBy: { select: { id: true, name: true, role: true } },
+                    assignedTo: { select: { id: true, name: true, role: true } },
+                },
+            },
+        },
+        orderBy: { createdAt: "desc" },
+    });
+
+    return projects;
+};
+
+export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper };

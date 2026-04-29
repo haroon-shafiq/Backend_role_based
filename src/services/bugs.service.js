@@ -5,6 +5,7 @@ const createBug = async ({
     type,
     status,
     description,
+    imageURL,
     deadline,
     projectId,
     creatorId,
@@ -34,6 +35,7 @@ const createBug = async ({
             type,
             status,
             description: description || null,
+            image: imageURL || null,
             deadline: deadline ? new Date(deadline) : null,
             projectId,
             creatorId,
@@ -44,6 +46,7 @@ const createBug = async ({
             type: true,
             status: true,
             description: true,
+            image: true,
             deadline: true,
             projectId: true,
             creatorId: true,
@@ -93,6 +96,7 @@ const getBug = async ({ projectID, developerID }) => {
             type: true,
             status: true,
             description: true,
+            image: true,
             deadline: true,
             projectId: true,
             creatorId: true,
@@ -181,8 +185,30 @@ const getAllBugs = async (userId) => {
         }
 
     })
-    console.log("Bugs", bugs);
+    // console.log("Bugs", bugs);
     return bugs;
 }
+const getBugById = async (bugID) => {
+    const bug = await prisma.bug.findUnique({
+        where: { id: bugID },
+        select: {
+            id: true,
+            title: true,
+            type: true,
+            status: true,
+            description: true,
+            image: true,
+            deadline: true,
+            projectId: true,
+            creatorId: true,
+            developerId: true,
+            createdAt: true,
+        },
+    })
+    if (!bug) {
+        return { notFoundBug: true };
+    }
+    return bug;
+}
 
-export { createBug, getBug, assignBugToDeveloper, getAllBugs };
+export { createBug, getBug, assignBugToDeveloper, getAllBugs, getBugById };
