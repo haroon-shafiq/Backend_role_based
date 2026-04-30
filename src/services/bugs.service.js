@@ -56,6 +56,23 @@ const createBug = async ({
 
     return { bug };
 };
+const updateBug = async ({ bugId, data }) => {
+    const bug = await prisma.bug.update({
+        where: {
+            id: bugId
+        },
+        data: {
+            title: data.title,
+            deadline: new Date(data.deadline).toISOString(),
+            description: data.description,
+            type: data.type,
+            status: data.status,
+        }
+    })
+    console.log("Bug", bug)
+
+    return bug;
+}
 const getBug = async ({ projectID, developerID }) => {
     const project = await prisma.project.findUnique({
         where: { id: projectID },
@@ -211,4 +228,4 @@ const getBugById = async (bugID) => {
     return bug;
 }
 
-export { createBug, getBug, assignBugToDeveloper, getAllBugs, getBugById };
+export { createBug, updateBug, getBug, assignBugToDeveloper, getAllBugs, getBugById };
