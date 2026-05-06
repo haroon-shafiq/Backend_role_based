@@ -1,4 +1,4 @@
-import { use } from "react";
+
 import * as AuthService from "../services/auth.service.js"
 import { sendError, sendSuccess } from "../utils/utils.response.js";
 const register = async (req, res) => {
@@ -42,20 +42,14 @@ const login = async (req, res) => {
         }
 
 
-        res.cookie('token', result.token, {
-            maxAge: 15 * 24 * 60 * 60 * 1000,
-            httpOnly: true,
-            sameSite: "strict",
-            secure: process.env.NODE_ENV === "production"
-        });
-
         return sendSuccess(res, 200, "User logged in successfully", {
             user: {
                 id: result.withoutPasswordUser.id,
                 name: result.withoutPasswordUser.name,
                 email: result.withoutPasswordUser.email,
                 role: result.withoutPasswordUser.role
-            }
+            },
+            token: result.token
         });
 
     } catch (error) {
