@@ -125,6 +125,24 @@ const getProjectIdByDeveloper = async (req, res) => {
         return sendError(res, 500, "Internal server error");
     }
 };
+const deleteProject = async (req, res) => {
+    try {
+        const { projectID } = req.params;
+        console.log("Project ID", projectID);
+        if (!projectID) {
+            return sendError(res, 400, "Project ID is required");
+        }
+        const result = await ProjectService.deleteProject(projectID);
+        console.log("Result in delete Project", result);
+        if (result.notFoundProject) {
+            return sendError(res, 404, "Project not found");
+        }
+        return sendSuccess(res, 200, "Project deleted successfully", { project: result.project });
+    } catch (error) {
+        console.log(error);
+        return sendError(res, 500, "Internal server error");
+    }
+}
 
 
-export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdByDeveloper };
+export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdByDeveloper, deleteProject };

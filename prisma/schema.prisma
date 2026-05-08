@@ -40,7 +40,8 @@ model Project {
 
   bugs Bug[] 
   projectUsers ProjectUser[]
-
+  
+  deletedAt DateTime? 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt   
 }
@@ -53,6 +54,7 @@ model Bug{
   image String?
   type BugType
   status BugStatus
+  deletedAt DateTime?
 
   creatorId String
   assignedBy User @relation("BugCreator", fields: [creatorId], references: [id])

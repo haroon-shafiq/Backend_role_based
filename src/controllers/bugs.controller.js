@@ -94,6 +94,7 @@ const createBug = async (req, res) => {
 const updateBugs = async (req, res) => {
     const { bugId } = req.params;
     const data = req.body;
+    console.log("Data", data)
     console.log("Bug ID:", bugId);
     if (!bugId) {
         return res.status(400).json({ success: false, message: "Bug ID is required" })
@@ -200,4 +201,40 @@ const getBugById = async (req, res) => {
         return sendError(res, 500, "Internal server error");
     }
 }
-export { createBug, updateBugs, getBug, assignBugToDeveloper, getAllBugs, getBugById }; 
+const deleteBug = async (req, res) => {
+    const { bugID } = req.params;
+    console.log("Bug ID", bugID);
+    if (!bugID) {
+        return sendError(res, 400, "bugID is required");
+    }
+    try {
+        const result = await BugService.deleteBug(bugID);
+        if (result.notFoundBug) {
+            return sendError(res, 404, "Bug not found");
+        }
+        return sendSuccess(res, 200, "Bug deleted successfully", { bug: result.bug });
+    } catch (error) {
+        console.error(error);
+        return sendError(res, 500, "Internal server error");
+    }
+}
+const updateStatus = async (req, res) => {
+    const { bugID } = req.params;
+    const { status } = req.body;
+    console.log("Bug ID", bugID);
+    console.log("Status", status);
+    if (!bugID || !status) {
+        return sendError(res, 400, "bugID and status are required");
+    }
+    try {
+        const result = await BugService.updateStatus(bugID, status);
+        if (result.notFoundBug) {
+            return sendError(res, 404, "Bug not found");
+        }
+        return sendSuccess(res, 200, "Status updated successfully", { bug: result.bug });
+    } catch (error) {
+        console.error(error);
+        return sendError(res, 500, "Internal server error");
+    }
+}
+export { createBug, updateBugs, getBug, assignBugToDeveloper, getAllBugs, getBugById, deleteBug, updateStatus }; 

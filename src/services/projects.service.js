@@ -46,6 +46,7 @@ const getProject = async (managerID) => {
     const projects = await prisma.project.findMany({
         where: {
             managerID,
+            deletedAt: null,
         },
         include: {
             projectUsers: {
@@ -121,18 +122,29 @@ const getAllProjects = async () => {
         select: {
             id: true,
             name: true,
-
-        },
-
+            description: true,
+            deadline: true,
+            manager: {
+                select: {
+                    id: true,
+                    name: true,
+                    role: true
+                }
+            }
+        }
     });
+
     return { projects };
-}
+};
 const getProjectIdsByDeveloper = async (developerID) => {
     const projects = await prisma.project.findMany({
         where: {
+            deletedAt: null,
             projectUsers: {
-                some: { userId: developerID },
+                some: { userId: developerID }
+
             },
+
         },
         include: {
             manager: {
@@ -140,9 +152,12 @@ const getProjectIdsByDeveloper = async (developerID) => {
             },
 
             bugs: {
+                where: {
+                    deletedAt: null,
+                },
                 include: {
                     assignedBy: { select: { id: true, name: true, role: true } },
-                    assignedTo: { select: { id: true, name: true, role: true } },
+                    assignedTo: { select: { id: true, email: true, name: true, role: true } },
                 },
             },
         },
@@ -151,5 +166,26 @@ const getProjectIdsByDeveloper = async (developerID) => {
 
     return projects;
 };
+const deleteProject = async (projectID) => {
+    console.log("Project ID", projectID);
+    const existingProject = await prisma.project.findUnique({
+        where: {
+            id: projectID,
+        },
+    });
+    if (!existingProject) {
+        return { notFoundProject: true };
+    }
 
-export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper };
+    const project = await prisma.project.update({
+        where: {
+            id: projectID,
+        },
+        data: {
+            deletedAt: new Date(),
+        },
+    });
+    return { project };
+}
+
+export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper, deleteProject };

@@ -57,6 +57,8 @@ const createBug = async ({
     return { bug };
 };
 const updateBug = async ({ bugId, data }) => {
+    console.log("Bug ID in Service", bugId)
+    console.log("Data in Service", data)
     const bug = await prisma.bug.update({
         where: {
             id: bugId
@@ -191,6 +193,7 @@ const getAllBugs = async (userId) => {
     const bugs = await prisma.bug.findMany({
         where: {
             creatorId: userId,
+            deletedAt: null,
         },
         include: {
             assignedTo: {
@@ -227,5 +230,46 @@ const getBugById = async (bugID) => {
     }
     return bug;
 }
+const deleteBug = async (bugID) => {
+    console.log("Bug ID in Service", bugID);
+    const existingBug = await prisma.bug.findUnique({
+        where: {
+            id: bugID,
 
-export { createBug, updateBug, getBug, assignBugToDeveloper, getAllBugs, getBugById };
+        },
+    });
+    if (!existingBug) {
+        return { notFoundBug: true };
+    }
+    const bug = await prisma.bug.update({
+        where: {
+            id: bugID,
+        },
+        data: {
+            deletedAt: new Date(),
+        },
+    });
+    return { bug };
+}
+const updateStatus = async (bugID, status) => {
+    const existingBug = await prisma.bug.findUnique({
+        where: {
+            id: bugID,
+
+        },
+    });
+    if (!existingBug) {
+        return { notFoundBug: true };
+    }
+    const bug = await prisma.bug.update({
+        where: {
+            id: bugID,
+        },
+        data: {
+            status: status,
+        },
+    });
+    return { bug };
+}
+
+export { createBug, updateBug, getBug, assignBugToDeveloper, getAllBugs, getBugById, deleteBug, updateStatus };
