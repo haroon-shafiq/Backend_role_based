@@ -166,25 +166,7 @@ const getProjectIdsByDeveloper = async (developerID) => {
 
     return projects;
 };
-const getBugsByProjectId = async (projectID) => {
-    const projects = await prisma.project.findUnique({
-        where: {
-            id: projectID,
-        },
-        include: {
-            bugs: {
-                where: {
-                    deletedAt: null,
-                },
-                include: {
-                    assignedBy: { select: { id: true, name: true, role: true } },
-                    assignedTo: { select: { id: true, email: true, name: true, role: true } },
-                },
-            },
-        },
-    });
-    return projects;
-}
+
 const deleteProject = async (projectID) => {
     console.log("Project ID", projectID);
     const existingProject = await prisma.project.findUnique({
@@ -207,4 +189,4 @@ const deleteProject = async (projectID) => {
     return { project };
 }
 
-export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper, getBugsByProjectId, deleteProject };
+export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper, deleteProject };
