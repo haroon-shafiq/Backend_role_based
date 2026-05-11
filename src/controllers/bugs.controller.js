@@ -201,6 +201,24 @@ const getBugById = async (req, res) => {
         return sendError(res, 500, "Internal server error");
     }
 }
+const getBugByProjectId = async (req, res) => {
+    const { projectId } = req.params;
+    console.log("Project ID", projectId);
+    if (!projectId) {
+        return sendError(res, 400, "Project ID is required");
+    }
+    try {
+        const result = await BugService.getBugsByProjectId(projectId);
+        console.log("result", result);
+        if (result.notFoundProject) {
+            return sendError(res, 404, "Project not found");
+        }
+        return sendSuccess(res, 200, "Bug fetched successfully", { project: result.project });
+    } catch (error) {
+        console.error(error);
+        return sendError(res, 500, "Internal server error");
+    }
+}
 const deleteBug = async (req, res) => {
     const { bugID } = req.params;
     console.log("Bug ID", bugID);
@@ -237,4 +255,4 @@ const updateStatus = async (req, res) => {
         return sendError(res, 500, "Internal server error");
     }
 }
-export { createBug, updateBugs, getBug, assignBugToDeveloper, getAllBugs, getBugById, deleteBug, updateStatus }; 
+export { createBug, updateBugs, getBug, assignBugToDeveloper, getAllBugs, getBugById, getBugByProjectId, deleteBug, updateStatus }; 

@@ -14,6 +14,7 @@ router.get('/:projectID/all-bugs', BugController.getBug);
 router.patch('/:bugID/assign', BugController.assignBugToDeveloper)
 router.get('/all-bugs', BugController.getAllBugs)
 router.get('/:bugID', BugController.getBugById)
+router.get('/:projectId/get-bugs', BugController.getBugByProjectId)
 router.delete('/:bugID', BugController.deleteBug)
 router.patch('/:bugID/status', BugController.updateStatus)
 

@@ -230,6 +230,28 @@ const getBugById = async (bugID) => {
     }
     return bug;
 }
+const getBugsByProjectId = async (projectId) => {
+    const project = await prisma.project.findUnique({
+        where: {
+            id: projectId,
+        },
+        include: {
+            bugs: {
+                where: {
+                    deletedAt: null,
+                },
+                include: {
+                    assignedBy: { select: { id: true, name: true, role: true } },
+                    assignedTo: { select: { id: true, email: true, name: true, role: true } },
+                },
+            },
+        },
+    });
+    if (!project) {
+        return { notFoundProject: true };
+    }
+    return { project };
+}
 const deleteBug = async (bugID) => {
     console.log("Bug ID in Service", bugID);
     const existingBug = await prisma.bug.findUnique({
@@ -272,4 +294,4 @@ const updateStatus = async (bugID, status) => {
     return { bug };
 }
 
-export { createBug, updateBug, getBug, assignBugToDeveloper, getAllBugs, getBugById, deleteBug, updateStatus };
+export { createBug, updateBug, getBug, assignBugToDeveloper, getAllBugs, getBugById, getBugsByProjectId, deleteBug, updateStatus };

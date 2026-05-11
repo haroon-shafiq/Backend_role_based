@@ -116,6 +116,9 @@ const getAllProjects = async (req, res) => {
 }
 const getProjectIdByDeveloper = async (req, res) => {
     const developerID = req.user.id;
+    const role = req.user.role;
+    console.log("Role from user", role);
+
     try {
         const projectIds = await ProjectService.getProjectIdsByDeveloper(developerID);
         console.log("Project IDs", projectIds);
