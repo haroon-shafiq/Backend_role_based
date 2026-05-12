@@ -46,8 +46,10 @@ const createProject = async (req, res) => {
 
 const getProject = async (req, res) => {
     const managerID = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     try {
-        const project = await ProjectService.getProject(managerID);
+        const project = await ProjectService.getProject(managerID, page, limit);
         console.log("Project", project);
 
         return sendSuccess(res, 200, "Project fetched successfully", project);
@@ -106,9 +108,12 @@ const assignDeveloperToProject = async (req, res) => {
     }
 };
 const getAllProjects = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     try {
-        const projects = await ProjectService.getAllProjects();
-        return sendSuccess(res, 200, "Projects fetched successfully", projects);
+        const projects = await ProjectService.getAllProjects(page, limit);
+        console.log("Projects", projects);
+        return sendSuccess(res, 200, "Projects fetched successfully", { projects });
     } catch (error) {
         console.log(error);
         return sendError(res, 500, "Internal server error");
@@ -117,10 +122,12 @@ const getAllProjects = async (req, res) => {
 const getProjectIdByDeveloper = async (req, res) => {
     const developerID = req.user.id;
     const role = req.user.role;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     console.log("Role from user", role);
 
     try {
-        const projectIds = await ProjectService.getProjectIdsByDeveloper(developerID);
+        const projectIds = await ProjectService.getProjectIdsByDeveloper(developerID, page, limit);
         console.log("Project IDs", projectIds);
         return sendSuccess(res, 200, "Project IDs fetched successfully", { projectIds });
     } catch (error) {

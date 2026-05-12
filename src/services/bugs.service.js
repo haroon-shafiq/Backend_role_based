@@ -1,4 +1,5 @@
 import { prisma } from "../config/db.js";
+import paginate from "../utils/paginate.js";
 
 const createBug = async ({
     title,
@@ -76,34 +77,7 @@ const updateBug = async ({ bugId, data }) => {
     return bug;
 }
 const getBug = async ({ projectID, developerID }) => {
-    const project = await prisma.project.findUnique({
-        where: { id: projectID },
-        select: { id: true },
-    });
-    if (!project) {
-        return { notFoundProject: true };
-    }
-    const developer = await prisma.user.findUnique({
-        where: { id: developerID },
-        select: { id: true, role: true },
-    });
-    if (!developer) {
-        return { notFoundDeveloper: true };
-    }
-    if (developer.role !== "DEVELOPER") {
-        return { notFoundRole: true };
-    }
-    const projectUser = await prisma.projectUser.findUnique({
-        where: {
-            userId_projectId: {
-                userId: developerID,
-                projectId: projectID,
-            },
-        },
-    });
-    if (!projectUser) {
-        return { developerNotInProject: true };
-    }
+
     const bugs = await prisma.bug.findMany({
         where: {
             projectId: projectID,
@@ -189,8 +163,11 @@ const assignBugToDeveloper = async ({ bugID, developerID, qaID, }) => {
 
     return { updatedBug };
 };
-const getAllBugs = async (userId) => {
-    const bugs = await prisma.bug.findMany({
+const getAllBugs = async (userId, limit, page) => {
+    return paginate({
+        model: prisma.bug,
+        page,
+        limit,
         where: {
             creatorId: userId,
             deletedAt: null,
@@ -203,10 +180,26 @@ const getAllBugs = async (userId) => {
                 }
             }
         }
-
     })
+
+    // const bugs = await prisma.bug.findMany({
+    //     where: {
+    //         creatorId: userId,
+    //         deletedAt: null,
+    //     },
+    //     include: {
+    //         assignedTo: {
+    //             select: {
+    //                 id: true,
+    //                 name: true
+    //             }
+    //         }
+    //     }
+
+    // })
+
     // console.log("Bugs", bugs);
-    return bugs;
+
 }
 const getBugById = async (bugID) => {
     const bug = await prisma.bug.findUnique({

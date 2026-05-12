@@ -1,4 +1,6 @@
 import { prisma } from "../config/db.js";
+import paginate from "../utils/paginate.js";
+
 const createProject = async ({ name, description, deadline, managerID }) => {
     console.log("Manager ID", managerID);
     console.log("Project Name", name);
@@ -42,8 +44,11 @@ const createProject = async ({ name, description, deadline, managerID }) => {
 
     return { project };
 }
-const getProject = async (managerID) => {
-    const projects = await prisma.project.findMany({
+const getProject = async (managerID, page, limit) => {
+    return paginate({
+        model: prisma.project,
+        page,
+        limit,
         where: {
             managerID,
             deletedAt: null,
@@ -62,9 +67,29 @@ const getProject = async (managerID) => {
                 }
             }
         }
-    });
+    })
+    // const projects = await prisma.project.findMany({
+    //     where: {
+    //         managerID,
+    //         deletedAt: null,
+    //     },
+    //     include: {
+    //         projectUsers: {
+    //             include: {
+    //                 user: {
+    //                     select: {
+    //                         id: true,
+    //                         name: true,
+    //                         email: true,
+    //                         role: true,
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // });
 
-    return { projects };
+    // return { projects };
 }
 const assignDeveloperToProject = async ({ managerID, projectID, developerID }) => {
     console.log("Project ID", projectID)
@@ -117,27 +142,38 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID }) =
     });
     return { projectUser };
 }
-const getAllProjects = async () => {
-    const projects = await prisma.project.findMany({
+
+
+
+const getAllProjects = async (page, limit) => {
+    return paginate({
+        model: prisma.project,
+        page,
+        limit,
+        where: {
+            deletedAt: null,
+        },
         select: {
             id: true,
             name: true,
             description: true,
             deadline: true,
+
             manager: {
                 select: {
                     id: true,
                     name: true,
-                    role: true
-                }
-            }
-        }
+                    role: true,
+                },
+            },
+        },
     });
-
-    return { projects };
 };
-const getProjectIdsByDeveloper = async (developerID) => {
-    const projects = await prisma.project.findMany({
+const getProjectIdsByDeveloper = async (developerID, page, limit) => {
+    return paginate({
+        model: prisma.project,
+        page,
+        limit,
         where: {
             deletedAt: null,
             projectUsers: {
@@ -162,9 +198,37 @@ const getProjectIdsByDeveloper = async (developerID) => {
             },
         },
         orderBy: { createdAt: "desc" },
-    });
 
-    return projects;
+    })
+
+    // const projects = await prisma.project.findMany({
+    //     where: {
+    //         deletedAt: null,
+    //         projectUsers: {
+    //             some: { userId: developerID },
+
+    //         },
+
+    //     },
+    //     include: {
+    //         manager: {
+    //             select: { id: true, name: true, role: true },
+    //         },
+
+    //         bugs: {
+    //             where: {
+    //                 deletedAt: null,
+    //             },
+    //             include: {
+    //                 assignedBy: { select: { id: true, name: true, role: true } },
+    //                 assignedTo: { select: { id: true, email: true, name: true, role: true } },
+    //             },
+    //         },
+    //     },
+    //     orderBy: { createdAt: "desc" },
+    // });
+
+    // return projects;
 };
 
 const deleteProject = async (projectID) => {

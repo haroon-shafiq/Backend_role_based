@@ -115,6 +115,7 @@ const getBug = async (req, res) => {
     const { projectID } = req.params;
     const developerID = req.user.id;
     const userRole = req.user.role;
+
     if (userRole !== "DEVELOPER") {
         return sendError(res, 404, "Only Developer can view bugs");
     }
@@ -123,14 +124,8 @@ const getBug = async (req, res) => {
     }
     try {
         const result = await BugService.getBug({ projectID, developerID });
-        if (result.notFoundProject) {
-            return sendError(res, 404, "Project not found");
-        }
-        if (result.notFoundDeveloper) {
-            return sendError(res, 404, "Developer not found");
-        }
-        if (result.developerNotInProject) {
-            return sendError(res, 404, "Developer is not assigned to the project of this bug");
+        if (!result) {
+            return sendError(res, 400, "Failed to get bugs");
         }
         return sendSuccess(res, 200, "Bugs fetched successfully", { bugs: result.bugs });
     } catch (error) {
@@ -178,10 +173,11 @@ const assignBugToDeveloper = async (req, res) => {
 }
 const getAllBugs = async (req, res) => {
     const qaID = req.user.id;
-    console.log("QA ID", qaID);
+    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page) || 1;
     try {
-        const bugs = await BugService.getAllBugs(qaID);
-        return sendSuccess(res, 200, "Bugs fetched successfully", { bugs });
+        const result = await BugService.getAllBugs(qaID, limit, page);
+        return sendSuccess(res, 200, "Bugs fetched successfully", { result });
     } catch (error) {
         console.error(error);
         return sendError(res, 500, "Internal server error");
