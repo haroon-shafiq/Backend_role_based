@@ -4,6 +4,7 @@ import projectRouter from "./project.route.js"
 import bugRouter from "./bug.route.js"
 import uploadRouter from "../routes/upload.routes.js"
 
+
 const router = Router();
 
 router.use('/v1/auth', authRouter)

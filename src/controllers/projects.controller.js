@@ -1,5 +1,6 @@
 import * as ProjectService from "../services/projects.service.js";
-import { sendSuccess, sendError } from "../utils/utils.response.js";
+import { sendSuccess, sendError } from "../utils/response.utils.js";
+import { decodeInviteToken } from "../utils/token.utils.js";
 
 const createProject = async (req, res) => {
     try {
@@ -43,7 +44,44 @@ const createProject = async (req, res) => {
         return sendError(res, 500, "Internal Server Error");
     }
 };
+const acceptInvite = async (req, res) => {
+    const { token } = req.query;
 
+    if (!token) {
+        return sendError(res, 400, "Invitation Token is required")
+    }
+
+    const { payload, expired, invalid } = decodeInviteToken(token);
+    if (invalid) {
+        return sendError(res, 400, "Invalid Invite Token")
+    }
+    if (expired) {
+        return sendError(res, 400, "Expired Invite Token")
+    }
+    const { developerID, projectID } = payload;
+
+    try {
+        const result = await ProjectService.acceptInvite({ developerID, projectID, token });
+        if (result.notFoundProjectUser) {
+            return sendError(res, 404, "Project User not found")
+        }
+        if (result.invalidInvite) {
+            return sendError(res, 400, "Invalid Invite")
+        }
+        if (result.expiredInvite) {
+            return sendError(res, 400, "Invite expired")
+        }
+        if (result.alreadyAccepted) {
+            return sendSuccess(res, 200, "Invite already accepted")
+        }
+        if (result.success) {
+            return sendSuccess(res, 200, "Invite accepted successfully", { projectUser: result.projectUser })
+        }
+    } catch (error) {
+        console.log(error);
+        return sendError(res, 500, "Internal Server Error");
+    }
+}
 const getProject = async (req, res) => {
     const managerID = req.user.id;
     const page = parseInt(req.query.page) || 1;
@@ -75,6 +113,7 @@ const assignDeveloperToProject = async (req, res) => {
             managerID,
             projectID,
             developerID,
+            role: req.user.role
         });
         if (result.notFoundProject) {
             return sendError(res, 404, "Project not found");
@@ -108,8 +147,8 @@ const assignDeveloperToProject = async (req, res) => {
     }
 };
 const getAllProjects = async (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
     try {
         const projects = await ProjectService.getAllProjects(page, limit);
         console.log("Projects", projects);
@@ -155,4 +194,4 @@ const deleteProject = async (req, res) => {
 }
 
 
-export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdByDeveloper, deleteProject };
+export { createProject, acceptInvite, getProject, assignDeveloperToProject, getAllProjects, getProjectIdByDeveloper, deleteProject };

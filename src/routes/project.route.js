@@ -5,15 +5,16 @@ import { checkAuth, checkRole } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-router.use(checkAuth);
+// router.use(checkAuth);
 // const managerRoleMiddleware = checkRole("MANAGER");
 // const allRolesMiddleware = checkRole("MANAGER", "DEVELOPER", "QA");
 
-router.post('/create', ProjectController.createProject);
-router.get('/', ProjectController.getProject)
-router.post('/:projectID/assign-developer', ProjectController.assignDeveloperToProject)
-router.get("/getAllProjects", ProjectController.getAllProjects)
-router.get("/my-projects", ProjectController.getProjectIdByDeveloper)
-router.delete("/:projectID", ProjectController.deleteProject)
+router.post('/create', checkAuth, ProjectController.createProject);
+router.get('/', checkAuth, ProjectController.getProject)
+router.post('/:projectID/assign-developer', checkAuth, ProjectController.assignDeveloperToProject)
+router.get("/getAllProjects", checkAuth, ProjectController.getAllProjects)
+router.get("/my-projects", checkAuth, ProjectController.getProjectIdByDeveloper)
+router.delete("/:projectID", checkAuth, ProjectController.deleteProject)
+router.get('/inviteAccept/', ProjectController.acceptInvite)
 
 export default router

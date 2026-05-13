@@ -1,6 +1,6 @@
 
 import * as AuthService from "../services/auth.service.js"
-import { sendError, sendSuccess } from "../utils/utils.response.js";
+import { sendError, sendSuccess } from "../utils/response.utils.js";
 const register = async (req, res) => {
     const { name, email, password, role } = req.body;
 

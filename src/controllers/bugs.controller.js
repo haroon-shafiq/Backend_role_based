@@ -1,5 +1,5 @@
 import * as BugService from "../services/bugs.service.js";
-import { sendSuccess, sendError } from "../utils/utils.response.js";
+import { sendSuccess, sendError } from "../utils/response.utils.js";
 import cloudinary from "../config/cloudinary.config.js";
 
 const createBug = async (req, res) => {

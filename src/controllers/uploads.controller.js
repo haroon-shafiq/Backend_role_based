@@ -1,5 +1,5 @@
 import * as UploadService from "../services/uploads.service.js"
-import { sendSuccess } from "../utils/utils.response.js";
+import { sendSuccess } from "../utils/response.utils.js";
 
 export const uploadImage = async (req, res) => {
     const { bugID } = req.params;
