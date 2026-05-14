@@ -1,4 +1,4 @@
-export const InvitationMailTemplate = ({ developerName, projectName, acceptLink, expiresIn = "24 hours" }) => {
+export const InvitationMailTemplate = ({ managerName, developerName, projectName, acceptLink, expiresIn = "24 hours" }) => {
     return `
     <!DOCTYPE html>
     <html lang="en">
@@ -33,7 +33,7 @@ export const InvitationMailTemplate = ({ developerName, projectName, acceptLink,
     </head>
     <body>
         <div class="body">
-            <p>Hi <span class="highlight">${developerName}</span>,</p>
+            <p>Hi <span class="highlight">${developerName}</span>, <span class="highlight">${managerName}</span> has invited you to join the project.</p>
             <p>
                 You have been invited to join the project 
                 <span class="highlight">"${projectName}"</span>. 

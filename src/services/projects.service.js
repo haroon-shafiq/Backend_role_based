@@ -94,11 +94,18 @@ const getProject = async (managerID, page, limit) => {
 
     // return { projects };
 }
-const assignDeveloperToProject = async ({ managerID, projectID, developerID, role }) => {
+const assignDeveloperToProject = async ({ managerID, projectID, developerID }) => {
     console.log("Project ID", projectID)
     const project = await prisma.project.findUnique({
         where: {
             id: projectID,
+        },
+        include: {
+            manager: {
+                select: {
+                    name: true,
+                },
+            },
         },
 
     });
@@ -134,15 +141,13 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID, rol
         return { alreadyAssigned: true };
     }
 
-    const responseOfGenerateToken = generateInviteToken({ developerID, projectID, role })
+    const responseOfGenerateToken = generateInviteToken({ developerID, projectID })
     console.log("Response of token for invitation", responseOfGenerateToken);
 
     const projectUser = await prisma.projectUser.create({
         data: {
             userId: developerID,
             projectId: projectID,
-            inviteToken: responseOfGenerateToken.token,
-            inviteExpiry: responseOfGenerateToken.expiry,
         },
         select: {
             id: true,
@@ -151,59 +156,128 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID, rol
         },
     });
     const acceptInviationLink = `${env.BASE_URL}/inviteAccept?token=${responseOfGenerateToken.token}`;
+
+    await prisma.invitation.create({
+        data: {
+            inviteToken: responseOfGenerateToken.token,
+            inviteExpiry: responseOfGenerateToken.expiry,
+            invitedById: managerID,
+            projectId: projectID,
+            invitedUserId: developerID,
+        },
+    });
     console.log("Accept Invitation Link", acceptInviationLink);
     await sendInvitationEmail({
         to: developer.email,
         developerName: developer.name,
         projectName: project.name,
+        managerName: project.manager.name,
         acceptLink: acceptInviationLink,
     });
 
     return { projectUser };
 }
 export const acceptInvite = async ({ developerID, projectID, token }) => {
-    const projectUser = await prisma.projectUser.findUnique({
-        where: {
-            userId_projectId: {
-                userId: developerID,
-                projectId: projectID,
-            }
-        }
-    })
-    console.log("Project User", projectUser);
-    if (!projectUser) {
-        return { notFoundProjectUser: true }
-    }
-    if (projectUser.acceptInvite && !projectUser.inviteToken) {
-        return { alreadyAccepted: true }
-    }
-    if (!projectUser.inviteToken || !projectUser.inviteExpiry) {
-        return { invalidInvite: true }
-    }
-    if (projectUser.inviteToken != token) {
-        return { invalidInvite: true }
-    }
-    if (projectUser.inviteExpiry < new Date()) {
-        return { expiredInvite: true }
-    }
 
-    const updatedProjectUser = await prisma.projectUser.update({
+    const invitation = await prisma.invitation.findUnique({
         where: {
-            userId_projectId: {
-                userId: developerID,
-                projectId: projectID
-            }
-        },
+            inviteToken: token
+        }
+    });
+    if (!invitation) {
+        const acceptedInvitation = await prisma.invitation.findFirst({
+            where: {
+                invitedUserId: developerID,
+                projectId: projectID,
+                acceptInvite: true,
+                inviteToken: null,
+            },
+        });
+
+        if (acceptedInvitation) return { alreadyAccepted: true };
+        return { invalidInvite: true };
+    }
+    console.log("Invitation", invitation);
+    if (invitation.invitedUserId !== developerID) {
+        return { invalidInvite: true };
+    };
+    if (invitation.projectId !== projectID) {
+        return { invalidInvite: true };
+    };
+    if (invitation.acceptInvite) {
+        return { alreadyAccepted: true };
+    };
+    if (invitation.inviteExpiry < new Date()) {
+        return { expiredInvite: true };
+    };
+
+    await prisma.invitation.update({
+        where: { inviteToken: token },
         data: {
             acceptInvite: true,
             inviteToken: null,
         },
     });
-    console.log("Updated Project User", projectUser);
+
+
+    const updatedProjectUser = await prisma.projectUser.update({
+        where: {
+            userId_projectId: {
+                userId: invitation.invitedUserId,
+                projectId: invitation.projectId,
+            },
+        },
+        data: {
+            acceptInvite: true,
+        },
+    });
+
     return { projectUser: updatedProjectUser };
+};
+
+// export const acceptInvite = async ({ developerID, projectID, token }) => {
+//     const projectUser = await prisma.projectUser.findUnique({
+//         where: {
+//             userId_projectId: {
+//                 userId: developerID,
+//                 projectId: projectID,
+//             }
+//         }
+//     })
+//     console.log("Project User", projectUser);
+//     if (!projectUser) {
+//         return { notFoundProjectUser: true }
+//     }
+//     if (projectUser.acceptInvite && !projectUser.inviteToken) {
+//         return { alreadyAccepted: true }
+//     }
+//     if (!projectUser.inviteToken || !projectUser.inviteExpiry) {
+//         return { invalidInvite: true }
+//     }
+//     if (projectUser.inviteToken != token) {
+//         return { invalidInvite: true }
+//     }
+//     if (projectUser.inviteExpiry < new Date()) {
+//         return { expiredInvite: true }
+//     }
+
+//     const updatedProjectUser = await prisma.projectUser.update({
+//         where: {
+//             userId_projectId: {
+//                 userId: developerID,
+//                 projectId: projectID
+//             }
+//         },
+//         data: {
+//             acceptInvite: true,
+//             inviteToken: null,
+//         },
+//     });
+//     console.log("Updated Project User", projectUser);
+//     return { projectUser: updatedProjectUser };
 
 
-}
+// }
 
 
 
@@ -229,6 +303,11 @@ const getAllProjects = async (page, limit) => {
                     role: true,
                 },
             },
+            projectUsers: {
+                select: {
+                    acceptInvite: true
+                }
+            }
         },
     });
 };
@@ -259,6 +338,11 @@ const getProjectIdsByDeveloper = async (developerID, page, limit) => {
                     assignedTo: { select: { id: true, email: true, name: true, role: true } },
                 },
             },
+            projectUsers: {
+                select: {
+                    acceptInvite: true
+                }
+            }
         },
         orderBy: { createdAt: "desc" },
 

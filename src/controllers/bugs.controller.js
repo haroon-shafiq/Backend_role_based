@@ -1,6 +1,7 @@
 import * as BugService from "../services/bugs.service.js";
 import { sendSuccess, sendError } from "../utils/response.utils.js";
 import cloudinary from "../config/cloudinary.config.js";
+import { BUG_STATUS, BUG_TYPE } from "../constants/enums.js";
 
 const createBug = async (req, res) => {
     const { projectID } = req.params;
@@ -23,14 +24,11 @@ const createBug = async (req, res) => {
     if (!title || !type || !status) {
         return sendError(res, 400, "title, type and status are required");
     }
-
-    const validType = ["BUG", "FEATURE"];
-    if (!validType.includes(type)) {
+    if (!BUG_TYPE.includes(type)) {
         return sendError(res, 400, "type must be BUG or FEATURE");
     }
 
-    const validStatus = ["NEW", "STARTED", "RESOLVED", "COMPLETED"];
-    if (!validStatus.includes(status)) {
+    if (!BUG_STATUS.includes(status)) {
         return sendError(
             res,
             400,

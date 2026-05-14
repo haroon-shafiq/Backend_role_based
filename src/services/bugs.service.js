@@ -100,6 +100,7 @@ const getBug = async ({ projectID, developerID }) => {
     return { bugs };
 }
 const assignBugToDeveloper = async ({ bugID, developerID, qaID, }) => {
+
     const bug = await prisma.bug.findUnique({
         where: { id: bugID },
         select: {

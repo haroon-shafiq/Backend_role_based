@@ -46,6 +46,8 @@ const createProject = async (req, res) => {
 };
 const acceptInvite = async (req, res) => {
     const { token } = req.query;
+    const userId = req.user.id;
+    console.log("User Id from token", userId)
 
     if (!token) {
         return sendError(res, 400, "Invitation Token is required")
@@ -62,9 +64,10 @@ const acceptInvite = async (req, res) => {
 
     try {
         const result = await ProjectService.acceptInvite({ developerID, projectID, token });
-        if (result.notFoundProjectUser) {
-            return sendError(res, 404, "Project User not found")
+        if (developerID !== userId) {
+            return sendError(res, 403, "You are not authorized to accept this invite")
         }
+
         if (result.invalidInvite) {
             return sendError(res, 400, "Invalid Invite")
         }
@@ -74,9 +77,9 @@ const acceptInvite = async (req, res) => {
         if (result.alreadyAccepted) {
             return sendSuccess(res, 200, "Invite already accepted")
         }
-        if (result.success) {
-            return sendSuccess(res, 200, "Invite accepted successfully", { projectUser: result.projectUser })
-        }
+
+        return sendSuccess(res, 200, "Invite accepted successfully", { projectUser: result.projectUser })
+
     } catch (error) {
         console.log(error);
         return sendError(res, 500, "Internal Server Error");

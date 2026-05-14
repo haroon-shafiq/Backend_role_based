@@ -24,6 +24,8 @@ model User {
   createdBugs Bug[] @relation("BugCreator")
   assignedBugs Bug[] @relation("BugDeveloper")
   projectUsers ProjectUser[]
+  sentInvitations Invitation[] @relation("SentInvitations")
+  receivedInvitations Invitation[] @relation("ReceivedInvitations")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -40,7 +42,8 @@ model Project {
 
   bugs Bug[] 
   projectUsers ProjectUser[]
-  
+  invitations Invitation[]
+
   deletedAt DateTime? 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt   
@@ -70,16 +73,34 @@ model Bug{
   @@unique([title, projectId]) 
 
 }
+
 model ProjectUser{
   id String @id @default(uuid())
   userId String
   projectId String
   acceptInvite Boolean @default(false)
-  inviteToken String? @unique
-  inviteExpiry DateTime?
   user User @relation(fields: [userId], references: [id])
   project Project @relation(fields: [projectId], references: [id])
   @@unique([userId,projectId])
+}
+
+model Invitation {
+  id String @id @default(uuid())
+  inviteToken String? @unique
+  inviteExpiry DateTime?
+  acceptInvite Boolean @default(false)
+
+  invitedById String
+  invitedBy User @relation("SentInvitations", fields: [invitedById], references: [id])
+
+  projectId String
+  project Project @relation(fields: [projectId], references: [id])
+
+  invitedUserId String?
+  invitedUser User? @relation("ReceivedInvitations", fields: [invitedUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Role{
