@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
 
+
 const INVITE_SECRET = env.INVITE_TOKEN_SECRET;
 const INVITE_EXPIRES_IN = "24h";
 const INVITE_EXPIRES_MS = 24 * 60 * 60 * 1000;
@@ -18,7 +19,6 @@ export const generateInviteToken = ({ developerID, projectID }) => {
 };
 
 export const decodeInviteToken = (token) => {
-    console.log("Token", token);
     try {
         return { payload: jwt.verify(token, INVITE_SECRET) };
     } catch (error) {

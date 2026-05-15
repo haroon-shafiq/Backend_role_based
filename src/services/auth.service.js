@@ -2,18 +2,16 @@ import { prisma } from "../config/db.js";
 import { env } from "../config/env.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import ApiError from "../utils/ApiError.js";
 
 const register = async (registerData) => {
     const existingUser = await prisma.user.findUnique({
         where: { email: registerData.email }
     });
-
     if (existingUser) {
-        return { existingUser };
+        throw new ApiError(409, "User already exists");
     }
-
     const hashedPassword = await bcrypt.hash(registerData.password, 10);
-
     const user = await prisma.user.create({
         data: {
             name: registerData.name,
@@ -22,7 +20,6 @@ const register = async (registerData) => {
             role: registerData.role
         }
     });
-
     return { user };
 };
 
@@ -30,15 +27,10 @@ const login = async (loginData) => {
     const existingUser = await prisma.user.findUnique({
         where: { email: loginData.email }
     });
-
-    if (!existingUser) {
-        return { existingUser: null, isPasswordMatched: false };
-    }
-
     const isPasswordMatched = await bcrypt.compare(loginData.password, existingUser.password);
 
-    if (!isPasswordMatched) {
-        return { existingUser, isPasswordMatched: false };
+    if (!isPasswordMatched || !existingUser) {
+        throw new ApiError(409, "Invalid Credentials");
     }
 
     const token = jwt.sign(
@@ -60,7 +52,11 @@ const login = async (loginData) => {
         }
     });
 
-    return { withoutPasswordUser, isPasswordMatched: true, token };
+    if (!withoutPasswordUser) {
+        throw new ApiError(404, "User not found");
+    }
+
+    return { withoutPasswordUser, token };
 };
 
 const getUser = async (userId) => {
@@ -73,8 +69,10 @@ const getUser = async (userId) => {
             role: true
         }
     });
-    return user
-
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+    return user;
 }
 
 const getAllDevelopers = async () => {

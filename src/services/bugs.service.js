@@ -1,5 +1,6 @@
 import { prisma } from "../config/db.js";
 import paginate from "../utils/paginate.js";
+import ApiError from "../utils/ApiError.js";
 
 const createBug = async ({
     title,
@@ -17,7 +18,7 @@ const createBug = async ({
     });
 
     if (!project) {
-        return { notFoundProject: true };
+        throw new ApiError(404, "Project not found");
     }
     const existTitle = await prisma.bug.findFirst({
         where: {
@@ -26,8 +27,9 @@ const createBug = async ({
             creatorId,
         },
     });
+
     if (existTitle) {
-        return { existTitle: true };
+        throw new ApiError(409, "Bug title already exists in this project")
     }
 
     const bug = await prisma.bug.create({
@@ -58,8 +60,9 @@ const createBug = async ({
     return { bug };
 };
 const updateBug = async ({ bugId, data }) => {
-    console.log("Bug ID in Service", bugId)
-    console.log("Data in Service", data)
+    if (!bugId) {
+        throw new ApiError(400, "Bug ID is required")
+    }
     const bug = await prisma.bug.update({
         where: {
             id: bugId
@@ -72,12 +75,12 @@ const updateBug = async ({ bugId, data }) => {
             status: data.status,
         }
     })
-    console.log("Bug", bug)
-
     return bug;
 }
 const getBug = async ({ projectID, developerID }) => {
-
+    if (!projectID) {
+        throw new ApiError(400, "projectID is required")
+    }
     const bugs = await prisma.bug.findMany({
         where: {
             projectId: projectID,
@@ -97,6 +100,9 @@ const getBug = async ({ projectID, developerID }) => {
             createdAt: true,
         },
     });
+    if (!bugs) {
+        throw new ApiError(400, "Failed to get bugs");
+    }
     return { bugs };
 }
 const assignBugToDeveloper = async ({ bugID, developerID, qaID, }) => {
@@ -111,11 +117,11 @@ const assignBugToDeveloper = async ({ bugID, developerID, qaID, }) => {
     });
 
     if (!bug) {
-        return { notFoundBug: true };
+        throw new ApiError(404, "Bug not found")
     }
 
     if (bug.creatorId !== qaID) {
-        return { notBugCreatedByQA: true };
+        throw new ApiError(404, "You can only assign bugs you created")
     }
 
     const developer = await prisma.user.findUnique({
@@ -124,12 +130,13 @@ const assignBugToDeveloper = async ({ bugID, developerID, qaID, }) => {
     });
 
     if (!developer) {
-        return { notFoundDeveloper: true };
+        throw new ApiError(404, "Developer not found");
     }
 
-    if (developer.role !== "DEVELOPER") {
-        return { notFoundRole: true };
+    if (developer?.role !== "DEVELOPER") {
+        throw new ApiError(404, "Role must be a developer")
     }
+
     const projectUser = await prisma.projectUser.findUnique({
         where: {
             userId_projectId: {
@@ -139,7 +146,7 @@ const assignBugToDeveloper = async ({ bugID, developerID, qaID, }) => {
         },
     });
     if (!projectUser) {
-        return { developerNotInProject: true };
+        throw new ApiError(404, "Developer is not assigned to the project of this bug")
     }
     const updatedBug = await prisma.bug.update({
         where: { id: bugID },
@@ -157,9 +164,8 @@ const assignBugToDeveloper = async ({ bugID, developerID, qaID, }) => {
             updatedAt: true,
         },
     });
-    console.log("Updated Bug", updatedBug);
     if (!updatedBug) {
-        return { notUpdated: true };
+        throw new ApiError(404, "Bug is not updated");
     }
 
     return { updatedBug };
@@ -203,6 +209,10 @@ const getAllBugs = async (userId, limit, page) => {
 
 }
 const getBugById = async (bugID) => {
+
+    if (!bugID) {
+        throw new ApiError(400, "bugID is required");
+    }
     const bug = await prisma.bug.findUnique({
         where: { id: bugID },
         select: {
@@ -225,6 +235,9 @@ const getBugById = async (bugID) => {
     return bug;
 }
 const getBugsByProjectId = async (projectId) => {
+    if (!projectId) {
+        throw ApiError(400, "Project ID is required");
+    }
     const project = await prisma.project.findUnique({
         where: {
             id: projectId,
@@ -241,13 +254,17 @@ const getBugsByProjectId = async (projectId) => {
             },
         },
     });
+
     if (!project) {
-        return { notFoundProject: true };
+        throw new ApiError(404, "Project not found");
     }
+
     return { project };
 }
 const deleteBug = async (bugID) => {
-    console.log("Bug ID in Service", bugID);
+    if (!bugID) {
+        throw new ApiError(400, "bugID is required");
+    }
     const existingBug = await prisma.bug.findUnique({
         where: {
             id: bugID,
@@ -255,8 +272,9 @@ const deleteBug = async (bugID) => {
         },
     });
     if (!existingBug) {
-        return { notFoundBug: true };
+        throw new ApiError(404, "Bug not found");
     }
+
     const bug = await prisma.bug.update({
         where: {
             id: bugID,
@@ -268,14 +286,18 @@ const deleteBug = async (bugID) => {
     return { bug };
 }
 const updateStatus = async (bugID, status) => {
+    if (!bugID || !status) {
+        throw new ApiError(400, "bugID and status are required")
+    }
     const existingBug = await prisma.bug.findUnique({
         where: {
             id: bugID,
 
         },
     });
+
     if (!existingBug) {
-        return { notFoundBug: true };
+        throw new ApiError(404, "Bug not found");
     }
     const bug = await prisma.bug.update({
         where: {

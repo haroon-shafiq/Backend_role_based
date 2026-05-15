@@ -3,12 +3,9 @@ import paginate from "../utils/paginate.js";
 import { generateInviteToken } from "../utils/token.utils.js";
 import { sendInvitationEmail } from "./email.service.js";
 import { env } from "../config/env.js";
+import ApiError from "../utils/ApiError.js";
 
 const createProject = async ({ name, description, deadline, managerID }) => {
-    console.log("Manager ID", managerID);
-    console.log("Project Name", name);
-    console.log("Description", description);
-    console.log("Deadline", deadline);
 
     const existingProject = await prisma.project.findFirst({
         where: {
@@ -21,9 +18,7 @@ const createProject = async ({ name, description, deadline, managerID }) => {
     });
 
     if (existingProject) {
-        return {
-            alreadyExists: true,
-        };
+        throw new ApiError(res, 409, "Project already exists");
     }
 
     const project = await prisma.project.create({
@@ -111,10 +106,10 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID }) =
     });
     console.log("Project", project);
     if (!project) {
-        return { notFoundProject: true };
+        throw new ApiError(404, "Project not found");
     }
     if (project.managerID !== managerID) {
-        return { notOwner: true };
+        throw new ApiError(403, "You can only assign developers to your own created projects");
     }
     const developer = await prisma.user.findUnique({
         where: {
@@ -122,10 +117,10 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID }) =
         },
     });
     if (!developer) {
-        return { notFoundDeveloper: true };
+        throw new ApiError(404, `Developer not found)`)
     }
     if (developer.role !== "DEVELOPER") {
-        return { roleNotFound: true };
+        throw new ApiError(400, `User  is not a developer`)
     }
     const alreadyAssigned = await prisma.projectUser.findUnique({
         where: {
@@ -136,9 +131,8 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID }) =
         },
     });
 
-    console.log("Already Assigned", alreadyAssigned);
     if (alreadyAssigned) {
-        return { alreadyAssigned: true };
+        throw new ApiError(400, "Developer already assigned to this project")
     }
 
     const responseOfGenerateToken = generateInviteToken({ developerID, projectID })
@@ -194,21 +188,21 @@ export const acceptInvite = async ({ developerID, projectID, token }) => {
             },
         });
 
-        if (acceptedInvitation) return { alreadyAccepted: true };
+        if (acceptedInvitation) {
+            throw new ApiError(200, "Invite already accepted")
+        }
         return { invalidInvite: true };
     }
     console.log("Invitation", invitation);
-    if (invitation.invitedUserId !== developerID) {
-        return { invalidInvite: true };
+    if (invitation.invitedUserId !== developerID || invitation.projectId !== projectID) {
+        throw new ApiError(400, "Invalid Invite")
     };
-    if (invitation.projectId !== projectID) {
-        return { invalidInvite: true };
-    };
+
     if (invitation.acceptInvite) {
-        return { alreadyAccepted: true };
+        throw new ApiError(200, "Invite already accepted")
     };
     if (invitation.inviteExpiry < new Date()) {
-        return { expiredInvite: true };
+        throw new ApiError(400, "Invite expired")
     };
 
     await prisma.invitation.update({
@@ -386,7 +380,7 @@ const deleteProject = async (projectID) => {
         },
     });
     if (!existingProject) {
-        return { notFoundProject: true };
+        throw new ApiError(404, "Project not found");
     }
 
     const project = await prisma.project.update({

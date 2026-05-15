@@ -2,6 +2,8 @@ import { Router } from "express";
 import { checkAuth, checkRole } from "../middleware/auth.middleware.js";
 import * as BugController from "../controllers/bugs.controller.js"
 import { upload } from "../middleware/multer.middleware.js";
+import { validate } from "../middleware/validation.middleware.js";
+// import { createBugValidator } from "../validators/bug.validator.js";
 const router = Router();
 
 router.use(checkAuth);
