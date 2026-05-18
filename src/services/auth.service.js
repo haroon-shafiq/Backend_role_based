@@ -3,6 +3,7 @@ import { env } from "../config/env.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import ApiError from "../utils/ApiError.js";
+import { userSelect } from "../constants/selectors.js";
 
 const register = async (registerData) => {
     const existingUser = await prisma.user.findUnique({
@@ -44,12 +45,7 @@ const login = async (loginData) => {
 
     const withoutPasswordUser = await prisma.user.findUnique({
         where: { id: existingUser.id },
-        select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true
-        }
+        select: userSelect
     });
 
     if (!withoutPasswordUser) {
@@ -62,12 +58,7 @@ const login = async (loginData) => {
 const getUser = async (userId) => {
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true
-        }
+        select: userSelect
     });
     if (!user) {
         throw new ApiError(404, "User not found");
@@ -88,11 +79,7 @@ const getDeveloperByProject = async (projectId) => {
             projectUsers: {
                 select: {
                     user: {
-                        select: {
-                            id: true,
-                            name: true,
-                            role: true,
-                        },
+                        select: userSelect
                     },
                 },
             },

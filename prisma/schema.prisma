@@ -26,6 +26,8 @@ model User {
   projectUsers ProjectUser[]
   sentInvitations Invitation[] @relation("SentInvitations")
   receivedInvitations Invitation[] @relation("ReceivedInvitations")
+  performedActivities Activity[] @relation("PerformedActivities")
+  assignedActivities Activity[]  @relation("AssignedActivities")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -102,6 +104,29 @@ model Invitation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+model Activity {
+  id String @id @default(uuid())
+  action String
+
+  entityType ActivityEntityType 
+  entityId String
+  entityTitle String?
+
+  changedFields String[]
+  oldValues String[]
+  newValues String[]
+
+  actorUserId String
+  actorUser User @relation("PerformedActivities", fields: [actorUserId], references: [id])
+
+  assignedToUserId String?
+  assignedToUser User? @relation("AssignedActivities", fields: [assignedToUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  
+}
 
 enum Role{
   MANAGER
@@ -118,5 +143,9 @@ enum BugStatus{
   STARTED
   RESOLVED
   COMPLETED
+}
+enum ActivityEntityType{
+  BUG
+  PROJECT
 }
 

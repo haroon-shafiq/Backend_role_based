@@ -4,6 +4,8 @@ import { generateInviteToken } from "../utils/token.utils.js";
 import { sendInvitationEmail } from "./email.service.js";
 import { env } from "../config/env.js";
 import ApiError from "../utils/ApiError.js";
+import { userSelect } from "../constants/selectors.js";
+import { notificationsSelector } from "../constants/notificationSelectors.js";
 
 const createProject = async ({ name, description, deadline, managerID }) => {
 
@@ -18,7 +20,7 @@ const createProject = async ({ name, description, deadline, managerID }) => {
     });
 
     if (existingProject) {
-        throw new ApiError(res, 409, "Project already exists");
+        throw new ApiError(409, "Project already exists");
     }
 
     const project = await prisma.project.create({
@@ -38,6 +40,9 @@ const createProject = async ({ name, description, deadline, managerID }) => {
         },
 
     });
+    await prisma.activity.create({
+        data: notificationsSelector("Project Created", "PROJECT", project.id, project.name, managerID)
+    })
 
 
     return { project };
@@ -161,6 +166,12 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID }) =
         },
     });
     console.log("Accept Invitation Link", acceptInviationLink);
+    await prisma.activity.create({
+        data: {
+            ...notificationsSelector("Invite sent to developer", "PROJECT", projectID, project.name, managerID),
+            assignedToUserId: developerID
+        }
+    })
     await sendInvitationEmail({
         to: developer.email,
         developerName: developer.name,
@@ -225,6 +236,7 @@ export const acceptInvite = async ({ developerID, projectID, token }) => {
             acceptInvite: true,
         },
     });
+
 
     return { projectUser: updatedProjectUser };
 };
@@ -372,26 +384,60 @@ const getProjectIdsByDeveloper = async (developerID, page, limit) => {
     // return projects;
 };
 
+
+
 const deleteProject = async (projectID) => {
     console.log("Project ID", projectID);
+
     const existingProject = await prisma.project.findUnique({
-        where: {
-            id: projectID,
-        },
+        where: { id: projectID },
     });
+
     if (!existingProject) {
         throw new ApiError(404, "Project not found");
     }
 
-    const project = await prisma.project.update({
-        where: {
-            id: projectID,
-        },
-        data: {
-            deletedAt: new Date(),
-        },
-    });
+    const now = new Date();
+
+    const [, project] = await prisma.$transaction([
+        prisma.bug.updateMany({
+            where: {
+                projectId: projectID,
+                deletedAt: null,
+            },
+            data: { deletedAt: now },
+        }),
+
+        prisma.project.update({
+            where: { id: projectID },
+            data: { deletedAt: now },
+        }),
+    ]);
+    await prisma.activity.create({
+        data: notificationsSelector("Project Deleted", "PROJECT", projectID, project.name, project.managerID)
+    })
     return { project };
+};
+
+const getProjectNotifications = async (userId) => {
+    const notifications = await prisma.activity.findMany({
+        where: {
+            actorUserId: userId
+
+        },
+        include: {
+            assignedToUser: {
+                select: userSelect
+            },
+            actorUser: {
+                select: userSelect,
+            },
+        }
+
+    })
+    console.log("Notifications=======>>>>>>>", notifications)
+
+    return { notifications };
 }
 
-export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper, deleteProject };
+export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper, deleteProject, getProjectNotifications };

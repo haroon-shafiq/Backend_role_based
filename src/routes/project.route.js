@@ -18,5 +18,6 @@ router.get("/getAllProjects", checkAuth, ProjectController.getAllProjects)
 router.get("/my-projects", checkAuth, ProjectController.getProjectIdByDeveloper)
 router.delete("/:projectID", checkAuth, ProjectController.deleteProject)
 router.get('/inviteAccept/', checkAuth, ProjectController.acceptInvite)
+router.get('/notifications', checkAuth, ProjectController.getProjectNotifications)
 
 export default router

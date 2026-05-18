@@ -6,6 +6,7 @@ import ApiError from "../utils/ApiError.js";
 
 const createProject = catchAsync(async (req, res) => {
     const { name, description, deadline, developerIDs } = req.body;
+    console.log("++++++++++??>>>>>>>>>>> Developer ID", developerIDs)
     const managerID = req.user.id;
 
     const result = await ProjectService.createProject({ name, description, deadline, managerID });
@@ -18,6 +19,7 @@ const createProject = catchAsync(async (req, res) => {
             });
         }
     }
+
     return sendSuccess(res, 201, "Project created successfully", {
         project: result.project,
     });
@@ -92,5 +94,8 @@ const deleteProject = catchAsync(async (req, res) => {
     const result = await ProjectService.deleteProject(projectID);
     return sendSuccess(res, 200, "Project deleted successfully", { project: result.project });
 })
-
-export { createProject, acceptInvite, getProject, assignDeveloperToProject, getAllProjects, getProjectIdByDeveloper, deleteProject };
+const getProjectNotifications = catchAsync(async (req, res) => {
+    const notifications = await ProjectService.getProjectNotifications(req.user.id);
+    return sendSuccess(res, 200, "Notifications fetched successfully", { notifications });
+})
+export { createProject, acceptInvite, getProject, assignDeveloperToProject, getAllProjects, getProjectIdByDeveloper, deleteProject, getProjectNotifications };
