@@ -6,6 +6,9 @@ import { env } from "../config/env.js";
 import ApiError from "../utils/ApiError.js";
 import { userSelect } from "../constants/selectors.js";
 import { notificationsSelector } from "../constants/notificationSelectors.js";
+import { ProjectActivityActionType, ProjectActivityEntityType } from "../constants/BugFields.js";
+import * as ActivityService from "../services/activity.service.js";
+
 
 const createProject = async ({ name, description, deadline, managerID }) => {
 
@@ -40,9 +43,9 @@ const createProject = async ({ name, description, deadline, managerID }) => {
         },
 
     });
-    await prisma.activity.create({
-        data: notificationsSelector("Project Created", "PROJECT", project.id, project.name, managerID)
-    })
+    // await prisma.activity.create({
+    //     data: notificationsSelector("Project Created", "PROJECT", project.id, project.name, managerID)
+    // })
 
 
     return { project };
@@ -94,7 +97,7 @@ const getProject = async (managerID, page, limit) => {
 
     // return { projects };
 }
-const assignDeveloperToProject = async ({ managerID, projectID, developerID }) => {
+const assignDeveloperToProject = async ({ managerID, projectID, developerID, createActivity = true }) => {
     console.log("Project ID", projectID)
     const project = await prisma.project.findUnique({
         where: {
@@ -154,6 +157,17 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID }) =
             userId: true,
         },
     });
+    if (createActivity) {
+        await ActivityService.createActivityService(
+            ProjectActivityActionType.INVITED,
+            ProjectActivityEntityType.PROJECT,
+            projectID,
+            project.name,
+            managerID,
+            developerID,
+        );
+    }
+
     const acceptInviationLink = `${env.BASE_URL}/inviteAccept?token=${responseOfGenerateToken.token}`;
 
     await prisma.invitation.create({
@@ -166,12 +180,15 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID }) =
         },
     });
     console.log("Accept Invitation Link", acceptInviationLink);
-    await prisma.activity.create({
-        data: {
-            ...notificationsSelector("Invite sent to developer", "PROJECT", projectID, project.name, managerID),
-            assignedToUserId: developerID
-        }
-    })
+    // if (createActivity) {
+    //     await prisma.activity.create({
+    //         data: {
+    //             ...notificationsSelector("Invite sent to developer", "PROJECT", projectID, project.name, managerID),
+    //             assignedToUserId: developerID
+    //         }
+    //     })
+    // }
+
     await sendInvitationEmail({
         to: developer.email,
         developerName: developer.name,
@@ -413,31 +430,14 @@ const deleteProject = async (projectID) => {
             data: { deletedAt: now },
         }),
     ]);
-    await prisma.activity.create({
-        data: notificationsSelector("Project Deleted", "PROJECT", projectID, project.name, project.managerID)
-    })
+
+
+    // await prisma.activity.create({
+    //     data: notificationsSelector("Project Deleted", "PROJECT", projectID, project.name, project.managerID)
+    // })
     return { project };
 };
 
-const getProjectNotifications = async (userId) => {
-    const notifications = await prisma.activity.findMany({
-        where: {
-            actorUserId: userId
 
-        },
-        include: {
-            assignedToUser: {
-                select: userSelect
-            },
-            actorUser: {
-                select: userSelect,
-            },
-        }
 
-    })
-    console.log("Notifications=======>>>>>>>", notifications)
-
-    return { notifications };
-}
-
-export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper, deleteProject, getProjectNotifications };
+export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper, deleteProject };

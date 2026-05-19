@@ -1,11 +1,7 @@
 import { prisma } from "../config/db.js";
 import paginate from "../utils/paginate.js";
 import ApiError from "../utils/ApiError.js";
-import { BugFieldsToTrack, updateBugActivities } from "../constants/BugFields.js";
-import { userSelect } from "../constants/selectors.js";
 import { notificationsSelector } from "../constants/notificationSelectors.js";
-
-
 
 const createBug = async ({
     title,
@@ -61,17 +57,18 @@ const createBug = async ({
             createdAt: true,
         },
     });
-    await prisma.activity.create({
-        data: notificationsSelector("Bug Created", "BUG", bug.id, bug.title, creatorId)
-    })
+    // await prisma.activity.create({
+    //     data: notificationsSelector("Bug Created", "BUG", bug.id, bug.title, creatorId)
+    // })
     return { bug };
 };
-const updateBug = async ({ bugId, data, userId }) => {
+const updateBug = async ({ bugId, data }) => {
     const existingBug = await prisma.bug.findUnique({
         where: {
             id: bugId
         }
     })
+
 
     const bug = await prisma.bug.update({
         where: {
@@ -88,34 +85,12 @@ const updateBug = async ({ bugId, data, userId }) => {
     })
 
 
-    for (let i = 0; i < BugFieldsToTrack.length; i++) {
-        const field = BugFieldsToTrack[i];
-        if (String(existingBug[field]) !== String(bug[field])) {
-            updateBugActivities.changedFields.push(field);
-            updateBugActivities.oldValues.push(String(existingBug[field]));
-            updateBugActivities.newValues.push(String(bug[field]));
-        }
-        console.log(
-            "Field : ", field,
-            "Old Values : ", String(existingBug[field]),
-            "New Values : ", String(bug[field])
-        );
-    }
-
-    console.log("******* Update Bug Activities", updateBugActivities.changedFields);
-    if (updateBugActivities.changedFields.length > 0) {
-        await prisma.activity.create({
-            data: {
-                ...notificationsSelector("Bug Updated", "BUG", bugId, bug.title, userId),
-                changedFields: updateBugActivities.changedFields,
-                oldValues: updateBugActivities.oldValues,
-                newValues: updateBugActivities.newValues,
-            }
-        })
-    }
-
-    console.log("******* Update Bug Activities", updateBugActivities);
-    return bug;
+    // await prisma.activity.create({
+    //     data: {
+    //         ...notificationsSelector("Bug Updated", "BUG", bugId, bug.title, userId, existingBug, bug),
+    //     }
+    // })
+    return { bug, existingBug };
 }
 const getBug = async ({ projectID, developerID }) => {
     if (!projectID) {
@@ -207,12 +182,12 @@ const assignBugToDeveloper = async ({ bugID, developerID, qaID, }) => {
     if (!updatedBug) {
         throw new ApiError(404, "Bug is not updated");
     }
-    await prisma.activity.create({
-        data: {
-            ...notificationsSelector("Bug Assigned", "BUG", updatedBug.id, updatedBug.title, qaID),
-            assignedToUserId: developerID,
-        }
-    })
+    // await prisma.activity.create({
+    //     data: {
+    //         ...notificationsSelector("Bug Assigned", "BUG", updatedBug.id, updatedBug.title, qaID),
+    //         assignedToUserId: developerID,
+    //     }
+    // })
     return { updatedBug };
 };
 const getAllBugs = async (userId, limit, page) => {
@@ -328,9 +303,9 @@ const deleteBug = async (bugID, creatorId) => {
             deletedAt: new Date(),
         },
     });
-    await prisma.activity.create({
-        data: notificationsSelector("Bug Deleted", "BUG", bugID, existingBug.title, creatorId)
-    })
+    // await prisma.activity.create({
+    //     data: notificationsSelector("Bug Deleted", "BUG", bugID, existingBug.title, creatorId)
+    // })
     return { bug };
 }
 const updateStatus = async (bugID, status) => {
@@ -361,29 +336,4 @@ const updateStatus = async (bugID, status) => {
     return { bug };
 };
 
-const getBugNotifications = async (userId) => {
-    const notifications = await prisma.activity.findMany({
-        where: {
-            actorUserId: userId,
-        },
-        include: {
-            assignedToUser: {
-                select: userSelect
-            },
-            actorUser: {
-                select: userSelect
-            }
-
-        }
-    })
-    console.log("notifications in bug +===========>>>>>...", getBugNotifications);
-    return { notifications };
-}
-
-
-
-
-
-
-
-export { createBug, updateBug, getBug, assignBugToDeveloper, getAllBugs, getBugById, getBugsByProjectId, deleteBug, updateStatus, getBugNotifications };
+export { createBug, updateBug, getBug, assignBugToDeveloper, getAllBugs, getBugById, getBugsByProjectId, deleteBug, updateStatus };

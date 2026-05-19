@@ -1,8 +1,10 @@
 import * as ProjectService from "../services/projects.service.js";
+import * as ActivityService from "../services/activity.service.js";
 import { sendSuccess } from "../utils/response.utils.js";
 import { decodeInviteToken } from "../utils/token.utils.js";
 import { catchAsync } from "../utils/catchAsync.js";
 import ApiError from "../utils/ApiError.js";
+import { ProjectActivityActionType, ProjectActivityEntityType } from "../constants/BugFields.js";
 
 const createProject = catchAsync(async (req, res) => {
     const { name, description, deadline, developerIDs } = req.body;
@@ -10,14 +12,19 @@ const createProject = catchAsync(async (req, res) => {
     const managerID = req.user.id;
 
     const result = await ProjectService.createProject({ name, description, deadline, managerID });
+    await ActivityService.createActivityService(ProjectActivityActionType.CREATED, ProjectActivityEntityType.PROJECT, result.project.id, result.project.name, managerID);
     if (developerIDs?.length > 0 && result.project.id) {
         for (const developerID of developerIDs) {
             await ProjectService.assignDeveloperToProject({
                 managerID,
                 projectID: result.project.id,
                 developerID,
+                createActivity: true
             });
         }
+
+
+
     }
 
     return sendSuccess(res, 201, "Project created successfully", {
@@ -92,10 +99,8 @@ const deleteProject = catchAsync(async (req, res) => {
         throw new ApiError(400, "Project ID is required");
     }
     const result = await ProjectService.deleteProject(projectID);
+    await ActivityService.createActivityService(ProjectActivityActionType.DELETED, ProjectActivityEntityType.PROJECT, result.project.id, result.project.name, req.user.id);
     return sendSuccess(res, 200, "Project deleted successfully", { project: result.project });
 })
-const getProjectNotifications = catchAsync(async (req, res) => {
-    const notifications = await ProjectService.getProjectNotifications(req.user.id);
-    return sendSuccess(res, 200, "Notifications fetched successfully", { notifications });
-})
-export { createProject, acceptInvite, getProject, assignDeveloperToProject, getAllProjects, getProjectIdByDeveloper, deleteProject, getProjectNotifications };
+
+export { createProject, acceptInvite, getProject, assignDeveloperToProject, getAllProjects, getProjectIdByDeveloper, deleteProject };

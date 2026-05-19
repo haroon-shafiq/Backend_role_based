@@ -1,8 +1,9 @@
 import * as BugService from "../services/bugs.service.js";
 import { sendSuccess } from "../utils/response.utils.js";
-import cloudinary from "../config/cloudinary.config.js";
 import { catchAsync } from "../utils/catchAsync.js";
+import { BugActivityActionType, BugActivityEntityType } from "../constants/BugFields.js";
 import ApiError from "../utils/ApiError.js";
+import * as activityService from "../services/activity.service.js";
 
 const createBug = catchAsync(async (req, res) => {
     const { projectID } = req.params;
@@ -10,12 +11,17 @@ const createBug = catchAsync(async (req, res) => {
     const qaID = req.user.id;
     const imageURL = req?.body?.imageURL
     const result = await BugService.createBug({ projectId: projectID, creatorId: qaID, imageURL, ...req.body });
+    console.log("@@@@@@@@@@@@@@@ Result", result);
+    await activityService.createActivityService(BugActivityActionType.CREATED, BugActivityEntityType.BUG, result.bug.id, result.bug.title, qaID);
+
     if (developerID && result.bug.id) {
-        await BugService.assignBugToDeveloper({
+        const bug = await BugService.assignBugToDeveloper({
             bugID: result.bug.id,
             developerID,
             qaID,
         });
+        console.log("@@@@@@@@@@@@@@@ Bug", bug);
+        await activityService.createActivityService(BugActivityActionType.ASSIGNED, BugActivityEntityType.BUG, bug.updatedBug.id, bug.updatedBug.title, qaID, bug.updatedBug.developerId);
     }
 
     return sendSuccess(res, 201, "Bug created successfully", {
@@ -27,8 +33,11 @@ const updateBugs = catchAsync(async (req, res) => {
     const { bugId } = req.params;
     const data = req.body;
     const userId = req.user.id;
-    const result = await BugService.updateBug({ bugId, data, userId });
-    return sendSuccess(res, 200, "Update the bug successfully", result);
+    const { existingBug, bug } = await BugService.updateBug({ bugId, data, userId });
+
+    console.log("Bug++++++", existingBug)
+    await activityService.createActivityService(BugActivityActionType.UPDATED, BugActivityEntityType.BUG, bug.id, bug.title, userId, bug.developerId, existingBug, bug);
+    return sendSuccess(res, 200, "Update the bug successfully", bug);
 })
 
 const getBug = catchAsync(async (req, res) => {
@@ -51,6 +60,7 @@ const assignBugToDeveloper = catchAsync(async (req, res) => {
         throw new ApiError(400, "bugID and developerID are required");
     }
     const result = await BugService.assignBugToDeveloper({ bugID, developerID, qaID });
+    console.log("@++++++++Result", result);
     return sendSuccess(res, 200, "Bug assigned to developer successfully", { bug: result.updatedBug });
 })
 
@@ -77,6 +87,7 @@ const getBugByProjectId = catchAsync(async (req, res) => {
 const deleteBug = catchAsync(async (req, res) => {
     const { bugID } = req.params;
     const result = await BugService.deleteBug(bugID, req.user.id);
+    await activityService.createActivityService(BugActivityActionType.DELETED, BugActivityEntityType.BUG, result.bug.id, result.bug.title, req.user.id);
     return sendSuccess(res, 200, "Bug deleted successfully", { bug: result.bug });
 })
 
@@ -86,10 +97,6 @@ const updateStatus = catchAsync(async (req, res) => {
     const result = await BugService.updateStatus(bugID, status);
     return sendSuccess(res, 200, "Status updated successfully", { bug: result.bug });
 })
-const getBugNotifications = catchAsync(async (req, res) => {
-    console.log("User In Notifications : ", req.user);
-    const notifications = await BugService.getBugNotifications(req.user.id);
-    return sendSuccess(res, 200, "Notification successfully", { notifications });
-})
 
-export { createBug, updateBugs, getBug, assignBugToDeveloper, getAllBugs, getBugById, getBugByProjectId, deleteBug, updateStatus, getBugNotifications }; 
+
+export { createBug, updateBugs, getBug, assignBugToDeveloper, getAllBugs, getBugById, getBugByProjectId, deleteBug, updateStatus }; 
