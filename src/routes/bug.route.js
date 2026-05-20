@@ -6,6 +6,8 @@ import { upload, uploadToCloudinary } from "../middleware/multer.middleware.js";
 import { validate } from "../middleware/validation.middleware.js";
 import { createBugValidator } from "../validators/bug.validator.js";
 
+
+
 // import { createBugValidator } from "../validators/bug.validator.js";
 const router = Router();
 
@@ -16,7 +18,7 @@ router.use(checkAuth);
 router.post('/:projectID/create', checkRole("QA"), upload.single('image'), uploadToCloudinary, createBugValidator, validate, BugController.createBug);
 router.patch('/:bugId', BugController.updateBugs)
 router.get('/:projectID/all-bugs', BugController.getBug);
-router.patch('/:bugID/assign', BugController.assignBugToDeveloper)
+router.patch('/:bugID/assign', checkRole("QA"), BugController.assignBugToDeveloper)
 router.get('/all-bugs', BugController.getAllBugs)
 router.get('/:bugID', BugController.getBugById)
 router.get('/:projectId/get-bugs', BugController.getBugByProjectId)

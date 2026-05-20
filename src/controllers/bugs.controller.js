@@ -11,7 +11,6 @@ const createBug = catchAsync(async (req, res) => {
     const qaID = req.user.id;
     const imageURL = req?.body?.imageURL
     const result = await BugService.createBug({ projectId: projectID, creatorId: qaID, imageURL, ...req.body });
-    console.log("@@@@@@@@@@@@@@@ Result", result);
     await activityService.createActivityService(BugActivityActionType.CREATED, BugActivityEntityType.BUG, result.bug.id, result.bug.title, qaID);
 
     if (developerID && result.bug.id) {
@@ -20,7 +19,6 @@ const createBug = catchAsync(async (req, res) => {
             developerID,
             qaID,
         });
-        console.log("@@@@@@@@@@@@@@@ Bug", bug);
         await activityService.createActivityService(BugActivityActionType.ASSIGNED, BugActivityEntityType.BUG, bug.updatedBug.id, bug.updatedBug.title, qaID, bug.updatedBug.developerId);
     }
 
@@ -34,8 +32,6 @@ const updateBugs = catchAsync(async (req, res) => {
     const data = req.body;
     const userId = req.user.id;
     const { existingBug, bug } = await BugService.updateBug({ bugId, data, userId });
-
-    console.log("Bug++++++", existingBug)
     await activityService.createActivityService(BugActivityActionType.UPDATED, BugActivityEntityType.BUG, bug.id, bug.title, userId, bug.developerId, existingBug, bug);
     return sendSuccess(res, 200, "Update the bug successfully", bug);
 })
@@ -52,15 +48,10 @@ const assignBugToDeveloper = catchAsync(async (req, res) => {
     const { bugID } = req.params;
     const { developerID } = req.body;
     const qaID = req.user.id;
-    const userRole = req.user.role;
-    if (userRole !== "QA") {
-        throw new ApiError(404, "Only QA can assign bugs to developers")
-    }
     if (!bugID || !developerID) {
         throw new ApiError(400, "bugID and developerID are required");
     }
     const result = await BugService.assignBugToDeveloper({ bugID, developerID, qaID });
-    console.log("@++++++++Result", result);
     return sendSuccess(res, 200, "Bug assigned to developer successfully", { bug: result.updatedBug });
 })
 
@@ -74,18 +65,27 @@ const getAllBugs = catchAsync(async (req, res) => {
 
 const getBugById = catchAsync(async (req, res) => {
     const { bugID } = req.params;
+    if (!bugID) {
+        throw new ApiError(400, "bugID is required");
+    }
     const bug = await BugService.getBugById(bugID);
     return sendSuccess(res, 200, "Bug ggg successfully", { bug });
 })
 
 const getBugByProjectId = catchAsync(async (req, res) => {
     const { projectId } = req.params;
+    if (!projectId) {
+        throw ApiError(400, "Project ID is required");
+    }
     const result = await BugService.getBugsByProjectId(projectId);
     return sendSuccess(res, 200, "Bug fetched successfully", { project: result.project });
 })
 
 const deleteBug = catchAsync(async (req, res) => {
     const { bugID } = req.params;
+    if (!bugID) {
+        throw new ApiError(400, "bugID is required");
+    }
     const result = await BugService.deleteBug(bugID, req.user.id);
     await activityService.createActivityService(BugActivityActionType.DELETED, BugActivityEntityType.BUG, result.bug.id, result.bug.title, req.user.id);
     return sendSuccess(res, 200, "Bug deleted successfully", { bug: result.bug });
@@ -94,6 +94,9 @@ const deleteBug = catchAsync(async (req, res) => {
 const updateStatus = catchAsync(async (req, res) => {
     const { bugID } = req.params;
     const { status } = req.body;
+    if (!bugID || !status) {
+        throw new ApiError(400, "bugID and status are required");
+    }
     const result = await BugService.updateStatus(bugID, status);
     return sendSuccess(res, 200, "Status updated successfully", { bug: result.bug });
 })

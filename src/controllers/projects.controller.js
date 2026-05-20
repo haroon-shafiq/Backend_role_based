@@ -13,6 +13,7 @@ const createProject = catchAsync(async (req, res) => {
 
     const result = await ProjectService.createProject({ name, description, deadline, managerID });
     await ActivityService.createActivityService(ProjectActivityActionType.CREATED, ProjectActivityEntityType.PROJECT, result.project.id, result.project.name, managerID);
+
     if (developerIDs?.length > 0 && result.project.id) {
         for (const developerID of developerIDs) {
             await ProjectService.assignDeveloperToProject({
@@ -22,8 +23,6 @@ const createProject = catchAsync(async (req, res) => {
                 createActivity: true
             });
         }
-
-
 
     }
 

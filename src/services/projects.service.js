@@ -4,11 +4,8 @@ import { generateInviteToken } from "../utils/token.utils.js";
 import { sendInvitationEmail } from "./email.service.js";
 import { env } from "../config/env.js";
 import ApiError from "../utils/ApiError.js";
-import { userSelect } from "../constants/selectors.js";
-import { notificationsSelector } from "../constants/notificationSelectors.js";
 import { ProjectActivityActionType, ProjectActivityEntityType } from "../constants/BugFields.js";
 import * as ActivityService from "../services/activity.service.js";
-
 
 const createProject = async ({ name, description, deadline, managerID }) => {
 
@@ -97,7 +94,7 @@ const getProject = async (managerID, page, limit) => {
 
     // return { projects };
 }
-const assignDeveloperToProject = async ({ managerID, projectID, developerID, createActivity = true }) => {
+const assignDeveloperToProject = async ({ managerID, projectID, developerID, createActivity }) => {
     console.log("Project ID", projectID)
     const project = await prisma.project.findUnique({
         where: {
@@ -158,6 +155,7 @@ const assignDeveloperToProject = async ({ managerID, projectID, developerID, cre
         },
     });
     if (createActivity) {
+        console.log("createActivity", createActivity)
         await ActivityService.createActivityService(
             ProjectActivityActionType.INVITED,
             ProjectActivityEntityType.PROJECT,
@@ -431,13 +429,26 @@ const deleteProject = async (projectID) => {
         }),
     ]);
 
-
-    // await prisma.activity.create({
-    //     data: notificationsSelector("Project Deleted", "PROJECT", projectID, project.name, project.managerID)
-    // })
     return { project };
 };
-
+// const findProjectService = async ({ projectId }) => {
+//     return await prisma.project.findUnique({
+//         where: {
+//             id: projectId,
+//         },
+//         include: {
+//             bugs: {
+//                 where: {
+//                     deletedAt: null,
+//                 },
+//                 include: {
+//                     assignedBy: { select: { id: true, name: true, role: true } },
+//                     assignedTo: { select: { id: true, email: true, name: true, role: true } },
+//                 },
+//             },
+//         },
+//     })
+// }
 
 
 export { createProject, getProject, assignDeveloperToProject, getAllProjects, getProjectIdsByDeveloper, deleteProject };

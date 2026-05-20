@@ -30,6 +30,7 @@ export const createBugValidator = [
     body("developerID")
         .optional()
 ];
+
 export const updateBugValidator = [
     param("bugId")
         .notEmpty()
