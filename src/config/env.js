@@ -4,7 +4,8 @@ config();
 
 export const env = {
     PORT: process.env.PORT,
-    JWT_SECRET: process.env.JWT_SECRET,
+    JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+    JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     BASE_URL: process.env.BASE_URL,
     CLOUD_NAME: process.env.CLOUD_NAME,

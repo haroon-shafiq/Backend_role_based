@@ -17,7 +17,7 @@ const login = catchAsync(async (req, res) => {
             email: result.withoutPasswordUser.email,
             role: result.withoutPasswordUser.role
         },
-        token: result.token
+        token: result.accessToken
     });
 });
 
@@ -41,4 +41,14 @@ const getDeveloperByProject = catchAsync(async (req, res) => {
     return sendSuccess(res, 200, "Developers fetched successfully", { developers });
 });
 
-export { register, login, logout, getUser, getAllDevelopers, getDeveloperByProject }; 
+
+const refreshToken = async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized");
+    }
+    const newAccessToken = await AuthService.refreshToken(userId)
+    return sendSuccess(res, 200, "Token generated successfully", { newAccessToken })
+};
+
+export { register, login, logout, getUser, getAllDevelopers, getDeveloperByProject, refreshToken };

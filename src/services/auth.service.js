@@ -1,9 +1,10 @@
 import { prisma } from "../config/db.js";
-import { env } from "../config/env.js";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import ApiError from "../utils/ApiError.js";
 import { userSelect } from "../constants/selectors.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.utils.js";
+import { env } from "../config/env.js";
+import jwt from "jsonwebtoken"
 
 const register = async (registerData) => {
     const existingUser = await prisma.user.findUnique({
@@ -33,15 +34,24 @@ const login = async (loginData) => {
     if (!isPasswordMatched || !existingUser) {
         throw new ApiError(409, "Invalid Credentials");
     }
+    const accessToken = generateAccessToken(existingUser)
+    const refreshToken = generateRefreshToken(existingUser)
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    const token = jwt.sign(
-        {
-            id: existingUser.id,
-            role: existingUser.role
+    await prisma.session.upsert({
+        where: {
+            userId: existingUser.id
         },
-        env.JWT_SECRET,
-        { expiresIn: "1d" }
-    );
+        update: {
+            refreshToken,
+            expiresAt
+        },
+        create: {
+            refreshToken,
+            expiresAt,
+            userId: existingUser.id
+        }
+    })
 
     const withoutPasswordUser = await prisma.user.findUnique({
         where: { id: existingUser.id },
@@ -52,7 +62,7 @@ const login = async (loginData) => {
         throw new ApiError(404, "User not found");
     }
 
-    return { withoutPasswordUser, token };
+    return { withoutPasswordUser, accessToken, refreshToken };
 };
 
 const getUser = async (userId) => {
@@ -88,4 +98,26 @@ const getDeveloperByProject = async (projectId) => {
     return developers
 }
 
-export { register, login, getUser, getAllDevelopers, getDeveloperByProject }; 
+const refreshToken = async (userId) => {
+    console.log("User id=======>", userId)
+    const session = await prisma.session.findUnique({
+        where: { userId },
+    });
+
+
+    if (!session) {
+        throw new ApiError(401, "Session not found, please login again");
+    }
+
+    if (session.expiresAt < new Date()) {
+        await prisma.session.delete({ where: { userId } });
+        throw new ApiError(401, "Session expired, please login again");
+    }
+
+    const payload = jwt.verify(session.refreshToken, env.JWT_REFRESH_SECRET);
+    const newAccessToken = generateAccessToken(payload);
+    console.log("New access token", newAccessToken)
+
+    return newAccessToken;
+};
+export { register, login, getUser, getAllDevelopers, getDeveloperByProject, refreshToken };
