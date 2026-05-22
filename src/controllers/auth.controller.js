@@ -42,13 +42,14 @@ const getDeveloperByProject = catchAsync(async (req, res) => {
 });
 
 
-const refreshToken = async (req, res) => {
+const refreshToken = catchAsync(async (req, res) => {
     const { userId } = req.body;
+    console.log("User id==>>", userId)
     if (!userId) {
         throw new ApiError(401, "Unauthorized");
     }
     const newAccessToken = await AuthService.refreshToken(userId)
     return sendSuccess(res, 200, "Token generated successfully", { newAccessToken })
-};
+});
 
 export { register, login, logout, getUser, getAllDevelopers, getDeveloperByProject, refreshToken };

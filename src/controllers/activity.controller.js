@@ -1,4 +1,5 @@
 import * as ActivityService from "../services/activity.service.js";
+import ApiError from "../utils/ApiError.js";
 import { catchAsync } from "../utils/catchAsync.js";
 import { sendSuccess } from "../utils/response.utils.js";
 

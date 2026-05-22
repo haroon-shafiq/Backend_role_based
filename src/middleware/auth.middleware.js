@@ -13,13 +13,14 @@ export const checkAuth = catchAsync(async (req, res, next) => {
         const payload = jwt.verify(token, env.JWT_ACCESS_SECRET);
         const session = payload.id;
         console.log("Session======>>>>>>", session)
-        if (!session || session.expiresIn < new Date()) {
+        if (!session) {
             return res.status(401).json({ message: "Session expired Please login again" })
         }
         req.user = payload;
 
         next();
     } catch (err) {
+        console.error("Error,,,,", err)
         if (err.name === "TokenExpiredError") {
             return res.status(401).json({ message: "Session expired" });
         }

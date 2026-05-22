@@ -36,7 +36,7 @@ const login = async (loginData) => {
     }
     const accessToken = generateAccessToken(existingUser)
     const refreshToken = generateRefreshToken(existingUser)
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
 
     await prisma.session.upsert({
         where: {
@@ -99,11 +99,9 @@ const getDeveloperByProject = async (projectId) => {
 }
 
 const refreshToken = async (userId) => {
-    console.log("User id=======>", userId)
     const session = await prisma.session.findUnique({
         where: { userId },
     });
-
 
     if (!session) {
         throw new ApiError(401, "Session not found, please login again");
@@ -113,7 +111,6 @@ const refreshToken = async (userId) => {
         await prisma.session.delete({ where: { userId } });
         throw new ApiError(401, "Session expired, please login again");
     }
-
     const payload = jwt.verify(session.refreshToken, env.JWT_REFRESH_SECRET);
     const newAccessToken = generateAccessToken(payload);
     console.log("New access token", newAccessToken)
